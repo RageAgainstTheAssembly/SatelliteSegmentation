@@ -2,6 +2,7 @@ import sys
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog, QMainWindow
 from PyQt5.uic import loadUi
+from PyQt5.QtWidgets import *
 import numpy as np
 import os
 from fastai.vision.all import *
@@ -35,7 +36,16 @@ def label_func(fn):
 
 
 model = load_learner('nALLe8.pkl')
-
+defaultColors = [(255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255)]
+mix = 0.5
+currentImage = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+original = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+backgroundMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+buildingMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+woodlandMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+waterMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
+width = 512
+height = 512
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -43,13 +53,45 @@ class MainWindow(QMainWindow):
         loadUi("gui.ui", self)
         self.browse.clicked.connect(self.select_target)
         self.startButton.clicked.connect(self.predict_pillow)
-        self.compressionSlider.setMinimum(1)
-        self.compressionSlider.setValue(1)
-        self.compressionSlider.setMaximum(10)
-        self.compressionSlider.valueChanged.connect(self.update_indicator)
+        self.buildingColor.clicked.connect(lambda: self.update_colors(0))
+        self.woodlandColor.clicked.connect(lambda: self.update_colors(1))
+        self.waterColor.clicked.connect(lambda: self.update_colors(2))
+        self.color0.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), (255, 0, 0, 255)))))
+        self.color1.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), (0, 255, 0, 255)))))
+        self.color2.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), (0, 0, 255, 255)))))
+        self.opacitySlider.valueChanged.connect(self.update_mix)
 
-    def update_indicator(self, value):
-        self.compressionIndicator.setText(str(value))
+    def update_mix(self):
+        global mix
+        mix = (100 - int(self.opacitySlider.value())) / 100
+        if currentImage != Image.new('RGBA', (512, 512), (255, 255, 255, 255)):
+            self.update_picture()
+
+    def update_picture(self):
+        working = original
+        buildingFilter = Image.new('RGBA', (width, height), defaultColors[0])
+        woodlandFilter = Image.new('RGBA', (width, height), defaultColors[1])
+        waterFilter = Image.new('RGBA', (width, height), defaultColors[2])
+        working = Image.composite(buildingFilter, working, buildingMask)
+        working = Image.composite(woodlandFilter, working, woodlandMask)
+        working = Image.composite(waterFilter, working, waterMask)
+        result = Image.blend(working, original, alpha=mix)
+        currentImage = result
+        self.display_result(ImageQt(currentImage).copy())
+
+    def update_colors(self, i):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            r, g, b, a = color.getRgb()
+            defaultColors[i] = (r, g, b, a)
+            if i == 0:
+                self.color0.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), defaultColors[i]))))
+            if i == 1:
+                self.color1.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), defaultColors[i]))))
+            if i == 2:
+                self.color2.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), defaultColors[i]))))
+            if currentImage != Image.new('RGBA', (512, 512), (255, 255, 255, 255)):
+                self.update_picture()
 
     def save_result(self, result):
         name = QFileDialog.getSaveFileName(self, 'Save File', r"C:\\")
@@ -94,14 +136,13 @@ class MainWindow(QMainWindow):
         waterMask = makeImage(waterTensor).resize((width, height), Image.ANTIALIAS)
 
 
-        red = Image.new('RGBA', (width, height), (255, 0, 0, 255))
-        green = Image.new('RGBA', (width, height), (0, 255, 0, 255))
-        blue = Image.new('RGBA', (width, height), (0, 0, 255, 255))
+        red = Image.new('RGBA', (width, height), defaultColors[0])
+        green = Image.new('RGBA', (width, height), defaultColors[1])
+        blue = Image.new('RGBA', (width, height), defaultColors[2])
         working = Image.composite(red, working, buildingMask)
         working = Image.composite(green, working, woodlandMask)
         working = Image.composite(blue, working, waterMask)
         result = Image.blend(working, original, alpha=0.5)
-        #result.save('result.jpg')
         qImage = ImageQt(result).copy()
         self.display_result(qImage)
         end = time.time()
@@ -109,7 +150,14 @@ class MainWindow(QMainWindow):
         self.save_result(result)
 
     def predict_pillow(self):
-        compressionFactor = int(self.compressionIndicator.text())
+        global currentImage
+        global original
+        global backgroundMask
+        global buildingMask
+        global woodlandMask
+        global waterMask
+        global width
+        global height
         start = time.time()
         targetPath = self.filename.text()
         predictionTuple = model.predict(targetPath)
@@ -128,14 +176,14 @@ class MainWindow(QMainWindow):
         original = Image.open(targetPath)
         working = original
         width, height = original.size
-        red = Image.new('RGBA', (width, height), (255, 0, 0, 255))
-        green = Image.new('RGBA', (width, height), (0, 255, 0, 255))
-        blue = Image.new('RGBA', (width, height), (0, 0, 255, 255))
-        working = Image.composite(red, working, buildingMask)
-        working = Image.composite(green, working, woodlandMask)
-        working = Image.composite(blue, working, waterMask)
-        result = Image.blend(working, original, alpha=0.5)
-        #result.save('result.jpg')
+        buildingFilter = Image.new('RGBA', (width, height), defaultColors[0])
+        woodlandFilter = Image.new('RGBA', (width, height), defaultColors[1])
+        waterFilter = Image.new('RGBA', (width, height), defaultColors[2])
+        working = Image.composite(buildingFilter, working, buildingMask)
+        working = Image.composite(woodlandFilter, working, woodlandMask)
+        working = Image.composite(waterFilter, working, waterMask)
+        result = Image.blend(working, original, alpha=mix)
+        currentImage = result
         qImage = ImageQt(result).copy()
         self.display_result(qImage)
         end = time.time()
@@ -148,8 +196,8 @@ def show_window():
     mainwindow = MainWindow()
     widget = QtWidgets.QStackedWidget()
     widget.addWidget(mainwindow)
-    widget.setFixedWidth(795)
-    widget.setFixedHeight(991)
+    widget.setFixedWidth(733)
+    widget.setFixedHeight(987)
     widget.show()
     sys.exit(app.exec_())
 

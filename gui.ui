@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>795</width>
-    <height>991</height>
+    <width>733</width>
+    <height>987</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>800</width>
-      <height>800</height>
+      <width>741</width>
+      <height>731</height>
      </rect>
     </property>
     <property name="text">
@@ -37,7 +37,7 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>810</y>
+      <y>760</y>
       <width>591</width>
       <height>28</height>
      </rect>
@@ -46,8 +46,8 @@
    <widget class="QPushButton" name="browse">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>810</y>
+      <x>630</x>
+      <y>760</y>
       <width>93</width>
       <height>28</height>
      </rect>
@@ -62,7 +62,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>100</x>
+      <x>610</x>
       <y>870</y>
       <width>121</width>
       <height>51</height>
@@ -72,17 +72,131 @@
      <string>Start segmentation</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="saveButton">
+   <widget class="QPushButton" name="buildingColor">
     <property name="geometry">
      <rect>
-      <x>560</x>
-      <y>870</y>
-      <width>121</width>
-      <height>51</height>
+      <x>0</x>
+      <y>810</y>
+      <width>111</width>
+      <height>28</height>
      </rect>
     </property>
     <property name="text">
-     <string>Save result</string>
+     <string>Building color</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="woodlandColor">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>850</y>
+      <width>111</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Woodland color</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="waterColor">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>890</y>
+      <width>111</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Water color</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="color0">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>810</y>
+      <width>28</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Plain</enum>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="color1">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>850</y>
+      <width>28</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="color2">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>890</y>
+      <width>28</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QSlider" name="opacitySlider">
+    <property name="geometry">
+     <rect>
+      <x>370</x>
+      <y>890</y>
+      <width>160</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="sliderPosition">
+     <number>50</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="opacityLabel">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>860</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Opacity</string>
     </property>
    </widget>
   </widget>
@@ -91,7 +205,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>795</width>
+     <width>733</width>
      <height>26</height>
     </rect>
    </property>
