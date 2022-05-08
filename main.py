@@ -14,6 +14,7 @@ from PIL.ImageQt import ImageQt
 from torchvision import transforms
 import pathlib
 import time
+import cv2
 
 
 
@@ -41,25 +42,74 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         loadUi("gui.ui", self)
         self.browse.clicked.connect(self.select_target)
-        self.startButton.clicked.connect(self.predict)
-        self.saveButton.clicked.connect(self.save_result)
+        self.startButton.clicked.connect(self.predict_pillow)
+        self.compressionSlider.setMinimum(1)
+        self.compressionSlider.setValue(1)
+        self.compressionSlider.setMaximum(10)
+        self.compressionSlider.valueChanged.connect(self.update_indicator)
+
+    def update_indicator(self, value):
+        self.compressionIndicator.setText(str(value))
 
     def save_result(self, result):
         name = QFileDialog.getSaveFileName(self, 'Save File', r"C:\\")
-        result.save(name[0])
+        print("Path to save: ")
+        print(name)
+        if name != ('', ''):
+            result.save(name[0])
 
     def select_target(self):
         picData = QFileDialog.getOpenFileName(self, "Open file", r"C:\\", "Image files (*.jpg *.png)")
-        #make correct path
         self.filename.setText(picData[0])
         self.Photo.setPixmap(QtGui.QPixmap(picData[0]))
 
     def display_result(self, qImage):
         self.Photo.setPixmap(QtGui.QPixmap.fromImage(qImage))
 
-    def predict(self):
-        self.startButton.setText("Working on it.....")
-        self.startButton.setEnabled(False)
+    def predict_opencv(self):
+        compressionFactor = int(self.compressionIndicator.text())
+        start = time.time()
+        targetPath = self.filename.text()
+        target = cv2.imread(targetPath)
+        newWidth = int(target.shape[1] / compressionFactor)
+        newHeight = int(target.shape[0] / compressionFactor)
+        resized = cv2.resize(target, (newWidth, newHeight), interpolation=cv2.INTER_AREA)
+        np_image_data = np.asarray(resized)
+        predictionTuple = model.predict(np_image_data)
+        makeImage = transforms.ToPILImage()
+
+        backgroundTensor = predictionTuple[2][0]
+        buildingTensor = predictionTuple[2][1]
+        woodlandTensor = predictionTuple[2][2]
+        waterTensor = predictionTuple[2][3]
+
+        np_image_data = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
+        original = Image.fromarray(np_image_data)
+        working = original
+        width, height = original.size
+
+        backgroundMask = makeImage(backgroundTensor).resize((width, height), Image.ANTIALIAS)
+        buildingMask = makeImage(buildingTensor).resize((width, height), Image.ANTIALIAS)
+        woodlandMask = makeImage(woodlandTensor).resize((width, height), Image.ANTIALIAS)
+        waterMask = makeImage(waterTensor).resize((width, height), Image.ANTIALIAS)
+
+
+        red = Image.new('RGBA', (width, height), (255, 0, 0, 255))
+        green = Image.new('RGBA', (width, height), (0, 255, 0, 255))
+        blue = Image.new('RGBA', (width, height), (0, 0, 255, 255))
+        working = Image.composite(red, working, buildingMask)
+        working = Image.composite(green, working, woodlandMask)
+        working = Image.composite(blue, working, waterMask)
+        result = Image.blend(working, original, alpha=0.5)
+        #result.save('result.jpg')
+        qImage = ImageQt(result).copy()
+        self.display_result(qImage)
+        end = time.time()
+        print(end - start)
+        self.save_result(result)
+
+    def predict_pillow(self):
+        compressionFactor = int(self.compressionIndicator.text())
         start = time.time()
         targetPath = self.filename.text()
         predictionTuple = model.predict(targetPath)
@@ -88,11 +138,9 @@ class MainWindow(QMainWindow):
         #result.save('result.jpg')
         qImage = ImageQt(result).copy()
         self.display_result(qImage)
-        self.save_result(result)
         end = time.time()
-        self.startButton.setDisabled(False)
-        self.startButton.setText("Start segmentation")
         print(end - start)
+        self.save_result(result)
 
 
 def show_window():
