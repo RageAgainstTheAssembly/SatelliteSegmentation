@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         self.color1.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), (0, 255, 0, 255)))))
         self.color2.setPixmap(QtGui.QPixmap.fromImage(ImageQt(Image.new('RGBA', (28, 28), (0, 0, 255, 255)))))
         self.opacitySlider.valueChanged.connect(self.update_mix)
+        self.saveButton.clicked.connect(self.save_result)
 
     def update_mix(self):
         global mix
@@ -68,6 +69,7 @@ class MainWindow(QMainWindow):
             self.update_picture()
 
     def update_picture(self):
+        global currentImage
         working = original
         buildingFilter = Image.new('RGBA', (width, height), defaultColors[0])
         woodlandFilter = Image.new('RGBA', (width, height), defaultColors[1])
@@ -93,12 +95,12 @@ class MainWindow(QMainWindow):
             if currentImage != Image.new('RGBA', (512, 512), (255, 255, 255, 255)):
                 self.update_picture()
 
-    def save_result(self, result):
+    def save_result(self):
         name = QFileDialog.getSaveFileName(self, 'Save File', r"C:\\")
         print("Path to save: ")
         print(name)
         if name != ('', ''):
-            result.save(name[0])
+            currentImage.save(name[0])
 
     def select_target(self):
         picData = QFileDialog.getOpenFileName(self, "Open file", r"C:\\", "Image files (*.jpg *.png)")
@@ -188,7 +190,6 @@ class MainWindow(QMainWindow):
         self.display_result(qImage)
         end = time.time()
         print(end - start)
-        self.save_result(result)
 
 
 def show_window():
