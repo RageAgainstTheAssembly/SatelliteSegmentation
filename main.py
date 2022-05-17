@@ -18,15 +18,6 @@ import time
 import cv2
 
 
-
-ROOT_PATH = ""
-DATA_PATH = os.path.join(ROOT_PATH, "DataSet/Split")
-IMAGE_PATH = os.path.join(ROOT_PATH, "images")
-LABEL_PATH = os.path.join(ROOT_PATH, "labels")
-BATCH_SIZE = 16
-path = Path(DATA_PATH)
-fnames = get_image_files(path/"images")
-codes = np.array(["building", "woodland", "water", "background"])
 temp = pathlib.PosixPath
 pathlib.PosixPath = pathlib.WindowsPath
 
@@ -46,6 +37,7 @@ woodlandMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
 waterMask = Image.new('RGBA', (512, 512), (255, 255, 255, 255))
 width = 512
 height = 512
+segmented = False
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -70,16 +62,17 @@ class MainWindow(QMainWindow):
 
     def update_picture(self):
         global currentImage
-        working = original
-        buildingFilter = Image.new('RGBA', (width, height), defaultColors[0])
-        woodlandFilter = Image.new('RGBA', (width, height), defaultColors[1])
-        waterFilter = Image.new('RGBA', (width, height), defaultColors[2])
-        working = Image.composite(buildingFilter, working, buildingMask)
-        working = Image.composite(woodlandFilter, working, woodlandMask)
-        working = Image.composite(waterFilter, working, waterMask)
-        result = Image.blend(working, original, alpha=mix)
-        currentImage = result
-        self.display_result(ImageQt(currentImage).copy())
+        if segmented:
+            working = original
+            buildingFilter = Image.new('RGBA', (width, height), defaultColors[0])
+            woodlandFilter = Image.new('RGBA', (width, height), defaultColors[1])
+            waterFilter = Image.new('RGBA', (width, height), defaultColors[2])
+            working = Image.composite(buildingFilter, working, buildingMask)
+            working = Image.composite(woodlandFilter, working, woodlandMask)
+            working = Image.composite(waterFilter, working, waterMask)
+            result = Image.blend(working, original, alpha=mix)
+            currentImage = result
+            self.display_result(ImageQt(currentImage).copy())
 
     def update_colors(self, i):
         color = QColorDialog.getColor()
@@ -103,53 +96,15 @@ class MainWindow(QMainWindow):
             currentImage.save(name[0])
 
     def select_target(self):
+        global segmented
+        segmented = False
         picData = QFileDialog.getOpenFileName(self, "Open file", r"C:\\", "Image files (*.jpg *.png)")
         self.filename.setText(picData[0])
         self.Photo.setPixmap(QtGui.QPixmap(picData[0]))
 
     def display_result(self, qImage):
-        self.Photo.setPixmap(QtGui.QPixmap.fromImage(qImage))
-
-    def predict_opencv(self):
-        compressionFactor = int(self.compressionIndicator.text())
-        start = time.time()
-        targetPath = self.filename.text()
-        target = cv2.imread(targetPath)
-        newWidth = int(target.shape[1] / compressionFactor)
-        newHeight = int(target.shape[0] / compressionFactor)
-        resized = cv2.resize(target, (newWidth, newHeight), interpolation=cv2.INTER_AREA)
-        np_image_data = np.asarray(resized)
-        predictionTuple = model.predict(np_image_data)
-        makeImage = transforms.ToPILImage()
-
-        backgroundTensor = predictionTuple[2][0]
-        buildingTensor = predictionTuple[2][1]
-        woodlandTensor = predictionTuple[2][2]
-        waterTensor = predictionTuple[2][3]
-
-        np_image_data = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
-        original = Image.fromarray(np_image_data)
-        working = original
-        width, height = original.size
-
-        backgroundMask = makeImage(backgroundTensor).resize((width, height), Image.ANTIALIAS)
-        buildingMask = makeImage(buildingTensor).resize((width, height), Image.ANTIALIAS)
-        woodlandMask = makeImage(woodlandTensor).resize((width, height), Image.ANTIALIAS)
-        waterMask = makeImage(waterTensor).resize((width, height), Image.ANTIALIAS)
-
-
-        red = Image.new('RGBA', (width, height), defaultColors[0])
-        green = Image.new('RGBA', (width, height), defaultColors[1])
-        blue = Image.new('RGBA', (width, height), defaultColors[2])
-        working = Image.composite(red, working, buildingMask)
-        working = Image.composite(green, working, woodlandMask)
-        working = Image.composite(blue, working, waterMask)
-        result = Image.blend(working, original, alpha=0.5)
-        qImage = ImageQt(result).copy()
-        self.display_result(qImage)
-        end = time.time()
-        print(end - start)
-        self.save_result(result)
+        if segmented:
+            self.Photo.setPixmap(QtGui.QPixmap.fromImage(qImage))
 
     def predict_pillow(self):
         global currentImage
@@ -160,6 +115,7 @@ class MainWindow(QMainWindow):
         global waterMask
         global width
         global height
+        global segmented
         start = time.time()
         targetPath = self.filename.text()
         predictionTuple = model.predict(targetPath)
@@ -186,6 +142,7 @@ class MainWindow(QMainWindow):
         working = Image.composite(waterFilter, working, waterMask)
         result = Image.blend(working, original, alpha=mix)
         currentImage = result
+        segmented = True
         qImage = ImageQt(result).copy()
         self.display_result(qImage)
         end = time.time()
